@@ -10,7 +10,9 @@ import pyrebase
 import requests
 
 import tkinter.filedialog as fd
-
+from PIL import Image, ImageTk
+import urllib.request
+import io
 
 class FirebaseConfig:
     def __init__(self):
@@ -24,7 +26,8 @@ class FirebaseConfig:
             "projectId": "global-testing-env",
             "storageBucket": "global-testing-env.appspot.com",
             "messagingSenderId": "403456253125",
-            "appId": "1:403456253125:web:129423ef3a31c45a5a24ac"
+            "appId": "1:403456253125:web:129423ef3a31c45a5a24ac",
+            "serviceAccount": "service_account.json"
         }
 
         self.firebase = pyrebase.initialize_app(self.firebaseConfig)
@@ -85,6 +88,9 @@ class FirebaseTkinterApp(tk.Tk):
         self.selectedFiles = []
         self.allFiles = []
 
+        self.totalImages = 0
+        self.counter = 0
+
         # creating a container
         container = tk.Frame(self)
         self.geometry('{}x{}'.format(600, 600))
@@ -100,14 +106,14 @@ class FirebaseTkinterApp(tk.Tk):
 
         # iterating through a tuple consisting
         # of the different page layouts
-        for F in (Disclaimer, LoginPage, About, DonatePage, UserHomepage, StartFrame, UploadImages, DeleteImages, ViewImages):
+        for F in (Disclaimer, LoginPage, About, DonatePage, UserHomepage, StartFrame, UploadImages, ViewImages):
             frame = F(container, self)
 
             self.frames[F] = frame
 
             frame.grid(row=0, column=0, sticky="nsew")
 
-        self.show_frame(StartFrame)
+        self.show_frame(Disclaimer)
 
         def callback(self, url):
             webbrowser.open_new(url)
@@ -130,7 +136,7 @@ class FirebaseTkinterApp(tk.Tk):
             else:
                 ans = messagebox.askquestion("Alert!", "A new update is available, would you like to download it now?")
                 if ans == 'yes':
-                    callback(self, 'https://github.com/fortysev-en/FirebaseTkinterApp')
+                    callback(self, 'https://github.com/fortysev-en/Tkinter-Firebase-Cloud-Image-Gallary')
                 else:
                     pass
 
@@ -459,7 +465,7 @@ class About(tk.Frame):
         Label(self, text=f"FirebaseTkinterApp\nversion_number: v{controller.current_version}", font=('ariel', 12, 'bold'),
               justify="center").place(x=210, y=160)
         Label(self,
-              text="FirebaseTkinterApp is an open source tool which can be extended further and used as a template or boiler plate to generate a user based app with login and signup feature.\n\n\nYou can use various features from Firebase such as Cloud Database and Realtime Database in order to fetch and save data which again could be used in varios purpose.\n\n\nIf you like my work, please consider to donate, it will not only encourage me but will keep this project live long.",
+              text="Tkinter-Firebase-Cloud-Image-Gallary is an open source tool which could be used to upload and view images from Firebase Cloud Database.\n\n\nYou can use various features from Firebase such as Cloud Database and Realtime Database in order to fetch and save data which again could be used in varios purpose.\n\n\nIf you like my work, please consider to donate, it will not only encourage me but will keep this project live long.",
               fg="#282828", font=('ariel', 10, 'bold'), wraplength=450).place(x=75, y=230)
 
         donate_link = Label(self, text='donate', font=('ariel', 8, 'bold'), fg='blue')
@@ -615,7 +621,7 @@ class StartFrame(tk.Frame):
         view_btn.place(x=310, y=250, width=205)
 
         Label(self,
-              text="You can now start working on your App from here. Create class frames inherited from the main app and continue. Feel free to add your own App Logo and Name and all the redirects to your website if available. Also, make sure you add your own wallet addresses from the donate page. Hope this project helps you in kickstarting your app.",
+              text="You can extend this app as per your needs. Create class frames inherited from the main app and continue. Feel free to add your own App Logo and Name and all the redirects to your website if available. Also, make sure you add your own wallet addresses from the donate page. Hope this project helps you in kickstarting your app.",
               fg="#282828", font=('ariel', 10, 'bold'), wraplength=450).place(x=85, y=350)
 
 
@@ -675,40 +681,56 @@ class UploadImages(tk.Frame):
             x=440, y=520, width=110)
 
 
-class DeleteImages(tk.Frame):
-    def __init__(self, parent, controller):
-        tk.Frame.__init__(self, parent)
-
-        Label(self, text="DELETE IMAGES", fg="#282828", font=('ariel', 20, 'bold')).place(x=200, y=150)
-
-
-
-        Label(self,
-              text="Please note that, once Image is deleted, it CANNOT be recovered back!",
-              fg="#282828", font=('ariel', 10, 'bold'), wraplength=450).place(x=85, y=350)
-
-
-        Button(self, text="Back", font=('ariel', 10, 'bold'),
-               command=lambda: controller.show_frame(UploadImages)).place(x=320, y=520, width=110)
-        # exit button for checking connection window
-        Button(self, text="Exit", font=('ariel', 10, 'bold'), fg="white", bg="#c00000",
-               command=lambda: controller.distroy_window()).place(
-            x=440, y=520, width=110)
-
-
 class ViewImages(tk.Frame):
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
 
-        Label(self, text="VIEW IMAGES", fg="#282828", font=('ariel', 20, 'bold')).place(x=200, y=150)
+        def getImage():
+            url = f"{controller.allFiles[controller.counter]}"
+            with urllib.request.urlopen(url) as connection:
+                raw_data = connection.read()
+            im = Image.open(io.BytesIO(raw_data))
+            image = ImageTk.PhotoImage(im)
+            widget.config(image=image)
+            image.image = image
 
-        api_btn = Button(self, text="UPLOAD IMAGES", font=('ariel', 10, 'bold'), fg="white", bg="#c00000")
-        api_btn.place(x=85, y=250, width=205)
+            controller.status_label.config(text=f"Showing {controller.counter + 1} of {controller.totalImages + 1}", fg="green")
 
-        anon_btn = Button(self, text="VIEW IMAGES", font=('ariel', 10, 'bold'), fg="white", bg="#c00000")
-        anon_btn.place(x=310, y=250, width=205)
+        def previousImg():
+            controller.counter -= 1
+            threading.Thread(target=getImage).start()
+            if controller.counter == 0:
+                prev_btn.config(state='disabled', bg=controller.defaultbg, fg='black')
+            controller.status_label.config(text="Loading Image....!", fg="green")
 
+        def nextImg():
+            controller.counter += 1
+            threading.Thread(target=getImage).start()
+            if controller.counter != 0:
+                prev_btn.config(state='normal', bg='green', fg='white')
+            if controller.counter == controller.totalImages:
+                next_btn.config(state='disabled', bg=controller.defaultbg, fg='black')
+            controller.status_label.config(text="Loading Image....!", fg="green")
 
+        widget = tk.Label(self)
+        widget.place(x=10, y=30)
+
+        def getImageList():
+            a = FirebaseConfig()
+            b = a.storage.list_files()
+            for blob in b:
+                c = a.storage.child(blob.name).get_url(None)
+                if 'FORTYSEVEN-IMAGE-GALLARY' in c:
+                    controller.allFiles.append(c)
+            controller.totalImages = len(controller.allFiles) - 1
+            getImage()
+        threading.Thread(target=getImageList).start()
+
+        prev_btn = Button(self, text="PREVIOUS", font=('ariel', 10, 'bold'), state="disabled", command=previousImg)
+        prev_btn.place(x=85, y=450, width=205)
+
+        next_btn = Button(self, text="NEXT", font=('ariel', 10, 'bold'), fg="white", bg="green", command=nextImg)
+        next_btn.place(x=310, y=450, width=205)
 
         Button(self, text="Back", font=('ariel', 10, 'bold'),
                command=lambda: controller.show_frame(StartFrame)).place(x=320, y=520, width=110)
