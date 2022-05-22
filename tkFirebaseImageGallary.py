@@ -149,7 +149,7 @@ class FirebaseTkinterApp(tk.Tk):
         # Adding Help Menu
         help_ = Menu(menubar, tearoff=0)
         menubar.add_cascade(label='Help', menu=help_)
-        help_.add_command(label='Quickstart Guide...', command=lambda: callback(self, "https://thefortyseven.dev/firebase-tkinter-login-signup-app-template"))
+        help_.add_command(label='Quickstart Guide...', command=lambda: callback(self, "https://thefortyseven.dev/tkinter-firebase-cloud-image-gallary"))
         help_.add_separator()
         help_.add_command(label='Report a Bug...', command=lambda: callback(self, "https://thefortyseven.dev/contact"))
         help_.add_separator()
@@ -197,23 +197,6 @@ class FirebaseTkinterApp(tk.Tk):
 
     def distroy_window(self):
         app.destroy()
-
-    def show_frame_head(self):
-        def callback(self, url):
-            webbrowser.open_new(url)
-
-        def on_enter(event):
-            auth_name.config(fg='green', cursor="question_arrow")
-
-        def on_leave(enter):
-            auth_name.config(fg='#c00000')
-
-        Label(self, text="FirebaseTkinterApp", fg="#c00000", font=('ariel', 20, 'bold')).place(x=170, y=40)
-        auth_name = Label(self, text='========================== by fortyseven ==========================', fg="#c00000", font=('ariel', 8, 'italic'))
-        auth_name.place(x=110, y=80)
-        auth_name.bind("<Button-1>", lambda e: callback(self, "https://thefortyseven.dev"))
-        auth_name.bind("<Enter>", on_enter)
-        auth_name.bind("<Leave>", on_leave)
 
     def show_frame(self, cont):
         frame = self.frames[cont]
@@ -354,7 +337,7 @@ class LoginPage(tk.Frame):
                         controller.app_login_cred['email'].set(response['email'])
                         controller.app_login_cred['idToken'].set(response['idToken'])
                         controller.status_label.config(text="Logged-in successfully!", fg="green")
-                        controller.show_frame_head()
+                        # controller.show_frame_head()
                         controller.show_frame(UserHomepage)
                     else:
                         login_btn.config(state="normal")
@@ -637,6 +620,7 @@ class UploadImages(tk.Frame):
         count = len(list(filez))
 
         for item in list(filez):
+            item = item.lower()
             if not (item.endswith('.png') or item.endswith('.jpg') or item.endswith('.jpeg') or item.endswith('.ico')):
                 controller.status_label.config(text="Images allowed with extension as PNG, JPG or JPEG", fg="#c00000")
             else:
@@ -686,15 +670,18 @@ class ViewImages(tk.Frame):
         tk.Frame.__init__(self, parent)
 
         def getImage():
-            url = f"{controller.allFiles[controller.counter]}"
-            with urllib.request.urlopen(url) as connection:
-                raw_data = connection.read()
-            im = Image.open(io.BytesIO(raw_data))
-            image = ImageTk.PhotoImage(im)
-            widget.config(image=image)
-            image.image = image
+            try:
+                url = f"{controller.allFiles[controller.counter]}"
+                with urllib.request.urlopen(url) as connection:
+                    raw_data = connection.read()
+                im = Image.open(io.BytesIO(raw_data))
+                image = ImageTk.PhotoImage(im)
+                widget.config(image=image)
+                image.image = image
 
-            controller.status_label.config(text=f"Showing {controller.counter + 1} of {controller.totalImages + 1}", fg="green")
+                controller.status_label.config(text=f"Showing {controller.counter + 1} of {controller.totalImages + 1}", fg="green")
+            except:
+                pass
 
         def previousImg():
             controller.counter -= 1
